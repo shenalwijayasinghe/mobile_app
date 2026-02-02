@@ -1,229 +1,341 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: MyApp()));
+  runApp(const MyApp());
 }
 
-// ================= MAIN APP =================
-
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        scaffoldBackgroundColor: Colors.grey.shade50,
+      ),
+      home: const FoodHubHome(),
+    );
+  }
+}
+
+class FoodHubHome extends StatefulWidget {
+  const FoodHubHome({super.key});
+
+  @override
+  State<FoodHubHome> createState() => _FoodHubHomeState();
+}
+
+class _FoodHubHomeState extends State<FoodHubHome> {
+  int _selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.green,
-        title: Text("FoodHub", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "FoodHub",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text("Profile clicked")));
+            },
+          ),
+        ],
       ),
-      body: AppBody(),
+      body: const AppBody(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Orders'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: 'Cart',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
     );
   }
 }
-
-// ================= BODY =================
 
 class AppBody extends StatelessWidget {
+  const AppBody({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      thumbVisibility: true,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ---------- RESTAURANT BANNER IMAGE ----------
-            Image.network(
-              "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4",
-              width: double.infinity,
-              height: 280,
-              fit: BoxFit.cover,
-            ),
-
-            // ---------- CATEGORIES ----------
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                "Categories",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ================= SEARCH BAR =================
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search for food...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.grey.shade200,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
+          ),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+          // ================= RESPONSIVE RESTAURANT IMAGE =================
+          LayoutBuilder(
+            builder: (context, constraints) {
+              double width = constraints.maxWidth;
+
+              double height = width >= 1200
+                  ? 420 // Desktop
+                  : width >= 800
+                  ? 350 // Tablet
+                  : 250; // Mobile
+
+              return Container(
+                width: double.infinity,
+                height: height,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.network(
+                    'https://static.vecteezy.com/system/resources/thumbnails/030/033/458/small/burger-fry-souse-banner-free-space-text-mockup-fast-food-top-view-empty-professional-phonography-photo.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 24),
+
+          // ================= CATEGORIES =================
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 25),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                CategoryBox(name: "Pizza", icon: Icons.local_pizza),
-                CategoryBox(name: "Salads", icon: Icons.eco),
-                CategoryBox(name: "Beverages", icon: Icons.local_drink),
-                CategoryBox(name: "Desserts", icon: Icons.cake),
+                _buildCategoryChip(Icons.local_pizza, 'Pizza', Colors.orange),
+                _buildCategoryChip(Icons.eco, 'Salads', Colors.green),
+                _buildCategoryChip(Icons.local_drink, 'Beverages', Colors.blue),
+                _buildCategoryChip(Icons.cake, 'Desserts', Colors.pink),
               ],
             ),
+          ),
 
-            // ---------- FEATURED DISHES ----------
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                "Featured Dishes",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+          const SizedBox(height: 24),
+
+          // ================= FEATURED DISHES =================
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Text(
+                  'Featured Dishes',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Text('See All', style: TextStyle(color: Colors.green)),
+              ],
             ),
+          ),
 
-            // ---------- FEATURED CARDS ----------
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
+          const SizedBox(height: 12),
+
+          SizedBox(
+            height: 260,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: const [
                 FeaturedCard(
                   imageUrl:
-                      "https://images.unsplash.com/photo-1550547660-d9450f859349",
-                  title: "Classic Burger",
-                  rating: "4.8",
-                  time: "20-25 min",
-                  price: "\$12.99",
+                      'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
+                  title: 'Classic Burger',
+                  rating: '4.8',
+                  time: '20-25 min',
+                  price: '\$12.99',
+                  label: 'Popular',
+                  labelColor: Colors.red,
                 ),
-                FeaturedCard(
-                  assetImage: "assets/pizza.jpg",
-                  title: "Margherita Pizza",
-                  rating: "4.9",
-                  time: "30-35 min",
-                  price: "\$15.99",
-                ),
+                SizedBox(width: 16),
                 FeaturedCard(
                   imageUrl:
-                      "https://images.unsplash.com/photo-1551183053-bf91a1d81141",
-                  title: "Caesar Salad",
-                  rating: "4.6",
-                  time: "10-15 min",
-                  price: "\$9.99",
+                      'https://images.unsplash.com/photo-1600028068383-ea11a7a101f3',
+                  title: 'Margherita Pizza',
+                  rating: '4.9',
+                  time: '30-35 min',
+                  price: '\$15.99',
+                  label: 'New',
+                  labelColor: Colors.green,
                 ),
               ],
             ),
+          ),
 
-            SizedBox(height: 30),
-          ],
-        ),
+          const SizedBox(height: 30),
+        ],
       ),
     );
   }
-}
 
-// ================= CATEGORY BOX =================
-
-class CategoryBox extends StatelessWidget {
-  final String name;
-  final IconData icon;
-
-  CategoryBox({required this.name, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("$name category clicked"),
-            duration: Duration(seconds: 1),
-          ),
-        );
-      },
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: Colors.green.shade100,
-          borderRadius: BorderRadius.circular(12),
+  Widget _buildCategoryChip(IconData icon, String label, Color color) {
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 30,
+          backgroundColor: color.withOpacity(0.15),
+          child: Icon(icon, color: color, size: 28),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.green),
-            SizedBox(height: 5),
-            Text(name, style: TextStyle(fontSize: 12)),
-          ],
-        ),
-      ),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
     );
   }
 }
 
 // ================= FEATURED CARD =================
-
 class FeaturedCard extends StatelessWidget {
-  final String? imageUrl;
-  final String? assetImage;
+  final String imageUrl;
   final String title;
   final String rating;
   final String time;
   final String price;
+  final String? label;
+  final Color? labelColor;
 
-  FeaturedCard({
-    this.imageUrl,
-    this.assetImage,
+  const FeaturedCard({
+    super.key,
+    required this.imageUrl,
     required this.title,
     required this.rating,
     required this.time,
     required this.price,
+    this.label,
+    this.labelColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 250,
-      height: 200,
+      width: 220,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 5)],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade300,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ---------- IMAGE ----------
-          ClipRRect(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-            child: assetImage != null
-                ? Image.asset(
-                    assetImage!,
-                    height: 90,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  )
-                : Image.network(
-                    imageUrl!,
-                    height: 90,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+                child: Image.network(
+                  imageUrl,
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              if (label != null)
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: labelColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      label!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
+                ),
+            ],
           ),
-
           Padding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-
-                SizedBox(height: 6),
-
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.star, size: 14, color: Colors.orange),
-                    SizedBox(width: 4),
+                    const Icon(Icons.star, size: 16, color: Colors.orange),
+                    const SizedBox(width: 4),
                     Text(rating),
-                    SizedBox(width: 10),
-                    Icon(Icons.timer, size: 14, color: Colors.grey),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.timer, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
                     Text(time),
                   ],
                 ),
-
-                SizedBox(height: 10),
-
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(price, style: TextStyle(fontWeight: FontWeight.bold)),
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: Text("Add", style: TextStyle(fontSize: 12)),
+                    Text(
+                      price,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
+                    ElevatedButton(onPressed: () {}, child: const Text("Add")),
                   ],
                 ),
               ],
