@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'login.dart';
+import 'register.dart';
 
 void main() {
   runApp(const MyApp());
@@ -43,6 +45,7 @@ class _FoodHubHomeState extends State<FoodHubHome> {
           IconButton(
             icon: const Icon(Icons.person),
             onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context)=>MyAppLogin()));
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(const SnackBar(content: Text("Profile clicked")));
