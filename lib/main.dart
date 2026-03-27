@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'orders_page.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -47,8 +47,7 @@ class _FoodHubHomeState extends State<FoodHubHome> {
           "FoodHub",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        centerTitle: true,
-        elevation: 0,
+
       ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
