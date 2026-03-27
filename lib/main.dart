@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:mobile_app/cart.dart';
+import 'profile.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,8 +35,10 @@ class _FoodHubHomeState extends State<FoodHubHome> {
   final List<Widget> _pages = [
     const AppBody(),
     const OrdersPage(),
-    const Center(child: Text("Cart Page")),
-    const Center(child: Text("Profile Page")),
+    
+    const CartPage(),
+    
+    const ProfilePage(),
   ];
 
   @override
