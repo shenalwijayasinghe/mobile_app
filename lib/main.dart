@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'orders_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,6 +31,13 @@ class FoodHubHome extends StatefulWidget {
 class _FoodHubHomeState extends State<FoodHubHome> {
   int _selectedIndex = 0;
 
+  final List<Widget> _pages = [
+    const AppBody(),
+    const OrdersPage(),
+    const Center(child: Text("Cart Page")),
+    const Center(child: Text("Profile Page")),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,37 +45,26 @@ class _FoodHubHomeState extends State<FoodHubHome> {
         backgroundColor: Colors.green,
         title: const Text(
           "FoodHub",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text("Profile clicked")));
-            },
-          ),
-        ],
+        centerTitle: true,
+        elevation: 0,
       ),
-      body: const AppBody(),
+      body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Orders'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: "Orders"),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
+            label: "Cart",
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
     );
@@ -83,225 +80,230 @@ class AppBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ================= SEARCH BAR =================
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search for food...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.grey.shade200,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+            padding: const EdgeInsets.fromLTRB(16, 15, 16, 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: "Search for food...",
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 14,
+                  ),
+                  prefixIcon: const Icon(Icons.search, color: Colors.green),
+                  suffixIcon: const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: CircleAvatar(
+                      radius: 15,
+                      backgroundColor: Colors.green,
+                      child: Icon(Icons.tune, size: 16, color: Colors.white),
+                    ),
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 15),
                 ),
               ),
             ),
           ),
 
-          // ================= RESPONSIVE RESTAURANT IMAGE =================
-          LayoutBuilder(
-            builder: (context, constraints) {
-              double width = constraints.maxWidth;
-
-              double height = width >= 1200
-                  ? 420 // Desktop
-                  : width >= 800
-                  ? 350 // Tablet
-                  : 250; // Mobile
-
-              return Container(
-                width: double.infinity,
-                height: height,
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 10,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            height: 150,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              image: const DecorationImage(
+                image: NetworkImage(
+                  'https://images.unsplash.com/photo-1550547660-d9450f859349',
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    'https://static.vecteezy.com/system/resources/thumbnails/030/033/458/small/burger-fry-souse-banner-free-space-text-mockup-fast-food-top-view-empty-professional-phonography-photo.jpg',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 24),
-
-          // ================= CATEGORIES =================
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildCategoryChip(Icons.local_pizza, 'Pizza', Colors.orange),
-                _buildCategoryChip(Icons.eco, 'Salads', Colors.green),
-                _buildCategoryChip(Icons.local_drink, 'Beverages', Colors.blue),
-                _buildCategoryChip(Icons.cake, 'Desserts', Colors.pink),
-              ],
+                fit: BoxFit.cover,
+              ),
             ),
           ),
 
-          const SizedBox(height: 24),
-
-          // ================= FEATURED DISHES =================
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  'Featured Dishes',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Text('See All', style: TextStyle(color: Colors.green)),
-              ],
-            ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: const [
+              CategoryItem(icon: Icons.local_pizza, label: "Pizza"),
+              CategoryItem(icon: Icons.eco, label: "Salads"),
+              CategoryItem(icon: Icons.local_drink, label: "Drinks"),
+              CategoryItem(icon: Icons.cake, label: "Desserts"),
+            ],
           ),
 
-          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              "Featured Dishes",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
 
           SizedBox(
-            height: 260,
+            height: 220,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.only(left: 16),
               children: const [
                 FeaturedCard(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
-                  title: 'Classic Burger',
-                  rating: '4.8',
-                  time: '20-25 min',
-                  price: '\$12.99',
-                  label: 'Popular',
-                  labelColor: Colors.red,
+                  title: "Burger",
+                  price: "\$12.99",
+                  img:
+                      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
                 ),
-                SizedBox(width: 16),
                 FeaturedCard(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1600028068383-ea11a7a101f3',
-                  title: 'Margherita Pizza',
-                  rating: '4.9',
-                  time: '30-35 min',
-                  price: '\$15.99',
-                  label: 'New',
-                  labelColor: Colors.green,
+                  title: "Pizza",
+                  price: "\$15.99",
+                  img:
+                      "https://images.unsplash.com/photo-1600028068383-ea11a7a101f3",
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
+}
 
-  Widget _buildCategoryChip(IconData icon, String label, Color color) {
+class OrdersPage extends StatefulWidget {
+  const OrdersPage({super.key});
+
+  @override
+  State<OrdersPage> createState() => _OrdersPageState();
+}
+
+class _OrdersPageState extends State<OrdersPage> {
+  int activeTab = 0;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
-        CircleAvatar(
-          radius: 30,
-          backgroundColor: color.withOpacity(0.15),
-          child: Icon(icon, color: color, size: 28),
+        const SizedBox(height: 20),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Row(
+              children: [_tabButton("Ongoing", 0), _tabButton("Completed", 1)],
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        const SizedBox(height: 20),
+
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: activeTab == 0
+                ? [
+                    const OrderCard(
+                      title: "Double Beef Burger",
+                      shop: "FoodHub Central",
+                      price: "\$18.50",
+                      status: "Preparing",
+                      isOngoing: true,
+                    ),
+                  ]
+                : [
+                    const OrderCard(
+                      title: "Pepperoni Pizza",
+                      shop: "Pizza Palace",
+                      price: "\$12.00",
+                      status: "Delivered",
+                      isOngoing: false,
+                    ),
+                  ],
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _tabButton(String title, int index) {
+    bool isSelected = activeTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => activeTab = index),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.green : Colors.transparent,
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: Center(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black54,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-// ================= FEATURED CARD =================
-class FeaturedCard extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-  final String rating;
-  final String time;
-  final String price;
-  final String? label;
-  final Color? labelColor;
-
-  const FeaturedCard({
+class OrderCard extends StatelessWidget {
+  final String title, shop, price, status;
+  final bool isOngoing;
+  const OrderCard({
     super.key,
-    required this.imageUrl,
     required this.title,
-    required this.rating,
-    required this.time,
+    required this.shop,
     required this.price,
-    this.label,
-    this.labelColor,
+    required this.status,
+    required this.isOngoing,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 220,
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                child: Image.network(
-                  imageUrl,
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              if (label != null)
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: labelColor,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      label!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+          Container(
+            height: 60,
+            width: 60,
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(Icons.fastfood, color: Colors.green.shade400),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
+          const SizedBox(width: 15),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -312,31 +314,119 @@ class FeaturedCard extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(Icons.star, size: 16, color: Colors.orange),
-                    const SizedBox(width: 4),
-                    Text(rating),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.timer, size: 16, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(time),
-                  ],
+                Text(
+                  shop,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      price,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    ElevatedButton(onPressed: () {}, child: const Text("Add")),
-                  ],
+                const SizedBox(height: 5),
+                Text(
+                  price,
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            children: [
+              Text(
+                status,
+                style: TextStyle(
+                  color: isOngoing ? Colors.orange : Colors.green,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isOngoing
+                      ? Colors.green.shade50
+                      : Colors.green,
+                  foregroundColor: isOngoing ? Colors.green : Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: const Size(80, 30),
+                ),
+                child: Text(
+                  isOngoing ? "Track" : "Reorder",
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CategoryItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const CategoryItem({super.key, required this.icon, required this.label});
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        CircleAvatar(
+          backgroundColor: Colors.green.shade50,
+          child: Icon(icon, color: Colors.green),
+        ),
+        const SizedBox(height: 5),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+}
+
+class FeaturedCard extends StatelessWidget {
+  final String title, price, img;
+  const FeaturedCard({
+    super.key,
+    required this.title,
+    required this.price,
+    required this.img,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 150,
+      margin: const EdgeInsets.only(right: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Image.network(
+              img,
+              height: 100,
+              width: 150,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(price, style: const TextStyle(color: Colors.green)),
+                const SizedBox(height: 5),
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text("Add", style: TextStyle(fontSize: 12)),
                 ),
               ],
             ),
