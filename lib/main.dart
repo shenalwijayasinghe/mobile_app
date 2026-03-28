@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/cart.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'cart.dart';
 import 'profile.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://rxqucmdsnpwqetfxzoux.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4cXVjbWRzbnB3cWV0Znh6b3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MTIyMjAsImV4cCI6MjA5MDE4ODIyMH0.ZkCXoqiZb1BnBXgxbBU7R1MGUtYpDPUAnsLRchdXFO4',
+  );
   runApp(const MyApp());
 }
+
+final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -32,14 +40,29 @@ class FoodHubHome extends StatefulWidget {
 class _FoodHubHomeState extends State<FoodHubHome> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const AppBody(),
-    const OrdersPage(),
-    
-    const CartPage(),
-    
-    const ProfilePage(),
-  ];
+  // CartPage key to force refresh when switching to cart tab
+  final GlobalKey<CartPageState> _cartKey = GlobalKey<CartPageState>();
+
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const AppBody(),
+      const OrdersPage(),
+      CartPage(key: _cartKey),
+      const ProfilePage(),
+    ];
+  }
+
+  void _onTabTapped(int index) {
+    setState(() => _selectedIndex = index);
+    // Refresh cart every time user taps cart tab
+    if (index == 2) {
+      _cartKey.currentState?.loadCart();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,15 +73,17 @@ class _FoodHubHomeState extends State<FoodHubHome> {
           "FoodHub",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-
       ),
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: _onTabTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.receipt), label: "Orders"),
@@ -162,14 +187,12 @@ class AppBody extends StatelessWidget {
                 FeaturedCard(
                   title: "Burger",
                   price: "\$12.99",
-                  img:
-                      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
+                  img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
                 ),
                 FeaturedCard(
                   title: "Pizza",
                   price: "\$15.99",
-                  img:
-                      "https://images.unsplash.com/photo-1600028068383-ea11a7a101f3",
+                  img: "https://images.unsplash.com/photo-1600028068383-ea11a7a101f3",
                 ),
               ],
             ),
@@ -196,7 +219,6 @@ class _OrdersPageState extends State<OrdersPage> {
     return Column(
       children: [
         const SizedBox(height: 20),
-
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Container(
@@ -211,7 +233,6 @@ class _OrdersPageState extends State<OrdersPage> {
           ),
         ),
         const SizedBox(height: 20),
-
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -345,9 +366,8 @@ class OrderCard extends StatelessWidget {
               ElevatedButton(
                 onPressed: () {},
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isOngoing
-                      ? Colors.green.shade50
-                      : Colors.green,
+                  backgroundColor:
+                      isOngoing ? Colors.green.shade50 : Colors.green,
                   foregroundColor: isOngoing ? Colors.green : Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -372,6 +392,7 @@ class CategoryItem extends StatelessWidget {
   final IconData icon;
   final String label;
   const CategoryItem({super.key, required this.icon, required this.label});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -395,6 +416,7 @@ class FeaturedCard extends StatelessWidget {
     required this.price,
     required this.img,
   });
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -427,7 +449,38 @@ class FeaturedCard extends StatelessWidget {
                 Text(price, style: const TextStyle(color: Colors.green)),
                 const SizedBox(height: 5),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    // Check if item already exists in cart
+                    final existing = await supabase
+                        .from('foodtable')
+                        .select()
+                        .eq('title', title);
+
+                    if (existing.isNotEmpty) {
+                      // Item exists — increase quantity
+                      final currentQty = existing[0]['quantity'] ?? 1;
+                      final itemId = existing[0]['id'];
+                      await supabase
+                          .from('foodtable')
+                          .update({'quantity': currentQty + 1}).eq('id', itemId);
+                    } else {
+                      // Item doesn't exist — insert new
+                      await supabase.from('foodtable').insert({
+                        'title': title,
+                        'price': double.parse(price.replaceAll('\$', '')),
+                        'image': img,
+                        'quantity': 1,
+                      });
+                    }
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("$title added to cart!"),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
                   child: const Text("Add", style: TextStyle(fontSize: 12)),
                 ),
               ],

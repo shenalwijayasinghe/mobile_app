@@ -1,36 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+final supabase = Supabase.instance.client;
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
 
   @override
-  State<CartPage> createState() => _CartPageState();
+  CartPageState createState() => CartPageState();
 }
 
-class _CartPageState extends State<CartPage> {
-  List<CartItem> cartItems = [
-    CartItem(
-      title: "Beef Burger Combo",
-      restaurant: "FoodHub Kitchen",
-      price: 18.50,
-      image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
-      quantity: 1,
-    ),
-    CartItem(
-      title: "Pepperoni Pizza",
-      restaurant: "Pizza Palace",
-      price: 15.99,
-      image: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3",
-      quantity: 2,
-    ),
-    CartItem(
-      title: "Chicken Fried Rice",
-      restaurant: "Asian Delight",
-      price: 12.00,
-      image: "https://images.unsplash.com/photo-1604908176997-4315c54b2c34",
-      quantity: 1,
-    ),
-  ];
+class CartPageState extends State<CartPage> {
+  List<CartItem> cartItems = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadCart();
+  }
+
+  // Public method so main.dart can call it to refresh
+  Future<void> loadCart() async {
+    setState(() => isLoading = true);
+    try {
+      final data = await supabase
+          .from('foodtable')
+          .select()
+          .order('id', ascending: true);
+      setState(() {
+        cartItems = data.map((item) => CartItem(
+          id: item['id'].toString(),
+          title: item['title'] ?? '',
+          price: (item['price'] as num).toDouble(),
+          image: item['image'] ?? '',
+          quantity: item['quantity'] ?? 1,
+        )).toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      debugPrint('Error loading cart: $e');
+    }
+  }
+
+  Future<void> _increaseQty(int index) async {
+    final item = cartItems[index];
+    final newQty = item.quantity + 1;
+    await supabase
+        .from('foodtable')
+        .update({'quantity': newQty})
+        .eq('id', item.id);
+    setState(() => cartItems[index].quantity = newQty);
+  }
+
+  Future<void> _decreaseQty(int index) async {
+    final item = cartItems[index];
+    if (item.quantity > 1) {
+      final newQty = item.quantity - 1;
+      await supabase
+          .from('foodtable')
+          .update({'quantity': newQty})
+          .eq('id', item.id);
+      setState(() => cartItems[index].quantity = newQty);
+    } else {
+      await supabase.from('foodtable').delete().eq('id', item.id);
+      setState(() => cartItems.removeAt(index));
+    }
+  }
+
+  Future<void> _deleteItem(int index) async {
+    final item = cartItems[index];
+    await supabase.from('foodtable').delete().eq('id', item.id);
+    setState(() => cartItems.removeAt(index));
+  }
 
   double get subtotal =>
       cartItems.fold(0, (sum, item) => sum + item.price * item.quantity);
@@ -38,22 +81,14 @@ class _CartPageState extends State<CartPage> {
   double get discount => 3.00;
   double get total => subtotal + deliveryFee - discount;
 
-  void _increaseQty(int index) {
-    setState(() => cartItems[index].quantity++);
-  }
-
-  void _decreaseQty(int index) {
-    setState(() {
-      if (cartItems[index].quantity > 1) {
-        cartItems[index].quantity--;
-      } else {
-        cartItems.removeAt(index);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.green),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: cartItems.isEmpty
@@ -67,6 +102,7 @@ class _CartPageState extends State<CartPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 8),
+
                         // Cart Items
                         ...List.generate(
                           cartItems.length,
@@ -223,9 +259,7 @@ class _CartPageState extends State<CartPage> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    _showCheckoutDialog(context);
-                  },
+                  onPressed: () => _showCheckoutDialog(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     shape: RoundedRectangleBorder(
@@ -274,9 +308,9 @@ class _CartPageState extends State<CartPage> {
   Widget _buildCartCard(int index) {
     final item = cartItems[index];
     return Dismissible(
-      key: Key(item.title),
+      key: Key(item.id),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => setState(() => cartItems.removeAt(index)),
+      onDismissed: (_) => _deleteItem(index),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -310,6 +344,12 @@ class _CartPageState extends State<CartPage> {
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.green.shade50,
+                  child: const Icon(Icons.fastfood, color: Colors.green),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -324,15 +364,7 @@ class _CartPageState extends State<CartPage> {
                       fontSize: 15,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    item.restaurant,
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     "\$${item.price.toStringAsFixed(2)}",
                     style: const TextStyle(
@@ -344,60 +376,55 @@ class _CartPageState extends State<CartPage> {
                 ],
               ),
             ),
+
             // Quantity Controls
-            Column(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _decreaseQty(index),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        item.quantity == 1
+                            ? Icons.delete_outline
+                            : Icons.remove,
+                        size: 18,
+                        color: item.quantity == 1 ? Colors.red : Colors.black87,
+                      ),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _decreaseQty(index),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(
-                            item.quantity == 1
-                                ? Icons.delete_outline
-                                : Icons.remove,
-                            size: 18,
-                            color: item.quantity == 1
-                                ? Colors.red
-                                : Colors.black87,
-                          ),
-                        ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      "${item.quantity}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          "${item.quantity}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => _increaseQty(index),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            size: 18,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  GestureDetector(
+                    onTap: () => _increaseQty(index),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -410,7 +437,10 @@ class _CartPageState extends State<CartPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+        Text(
+          label,
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+        ),
         Text(
           value,
           style: TextStyle(
@@ -447,12 +477,12 @@ class _CartPageState extends State<CartPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Add items to get started",
+            "Add items from the home page",
             style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: loadCart,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               padding:
@@ -462,8 +492,11 @@ class _CartPageState extends State<CartPage> {
               ),
             ),
             child: const Text(
-              "Browse Food",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              "Refresh",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -507,7 +540,13 @@ class _CartPageState extends State<CartPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  for (var item in cartItems) {
+                    await supabase
+                        .from('foodtable')
+                        .delete()
+                        .eq('id', item.id);
+                  }
                   Navigator.pop(ctx);
                   setState(() => cartItems.clear());
                 },
@@ -537,15 +576,15 @@ class _CartPageState extends State<CartPage> {
 }
 
 class CartItem {
+  final String id;
   final String title;
-  final String restaurant;
   final double price;
   final String image;
   int quantity;
 
   CartItem({
+    required this.id,
     required this.title,
-    required this.restaurant,
     required this.price,
     required this.image,
     required this.quantity,
